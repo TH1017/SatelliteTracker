@@ -35,12 +35,16 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.PropertyFactory.circleColor
 import org.maplibre.android.style.layers.PropertyFactory.circleRadius
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
+import org.maplibre.android.style.layers.PropertyFactory.lineColor
+import org.maplibre.android.style.layers.PropertyFactory.lineWidth
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
+import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 import com.example.satellitetracker.ui.theme.SatelliteTrackerTheme
 
@@ -163,6 +167,56 @@ private fun updateIssMarker(
     }
 }
 
+private fun updateIssOrbit(
+    map: MapLibreMap,
+    positions: List<SatellitePosition>
+) {
+    map.getStyle { style ->
+
+        val points = positions.map {
+            Point.fromLngLat(
+                it.longitude,
+                it.latitude
+            )
+        }
+
+        val lineString = LineString.fromLngLats(
+            points
+        )
+
+        val feature = Feature.fromGeometry(
+            lineString
+        )
+
+        val source =
+            style.getSourceAs<GeoJsonSource>("orbit-source")
+
+        if (source != null) {
+            source.setGeoJson(feature)
+        } else {
+
+            val newSource = GeoJsonSource(
+                "orbit-source",
+                feature
+            )
+
+            style.addSource(newSource)
+
+            val layer = LineLayer(
+                "orbit-layer",
+                "orbit-source"
+            )
+
+            layer.setProperties(
+                lineColor(Color.Cyan.hashCode()),
+                lineWidth(3f)
+            )
+
+            style.addLayer(layer)
+        }
+    }
+}
+
 @Composable
 fun SatelliteTrackerScreen(
     mapView: MapView,
@@ -190,6 +244,24 @@ fun SatelliteTrackerScreen(
             satelliteData = data
 
             val propagator = SatellitePropagator()
+
+            val orbitPositions = withContext(
+                Dispatchers.Default
+            ) {
+                propagator.getOrbitPositions(
+                    line1 = data.line1,
+                    line2 = data.line2,
+                    durationMinutes = 90,
+                    stepSeconds = 60
+                )
+            }
+
+            mapView.getMapAsync { map ->
+                updateIssOrbit(
+                    map = map,
+                    positions = orbitPositions
+                )
+            }
 
             while (true) {
 

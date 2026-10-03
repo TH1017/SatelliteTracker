@@ -37,6 +37,63 @@ class SatellitePropagator {
             utc
         )
 
+        return calculatePosition(
+            propagator = propagator,
+            date = date
+        )
+    }
+
+    fun getOrbitPositions(
+        line1: String,
+        line2: String,
+        durationMinutes: Int = 90,
+        stepSeconds: Int = 60
+    ): List<SatellitePosition> {
+
+        val tle = TLE(
+            line1,
+            line2
+        )
+
+        val propagator = TLEPropagator.selectExtrapolator(tle)
+
+        val utc = TimeScalesFactory.getUTC()
+
+        val startDate = AbsoluteDate(
+            Date(),
+            utc
+        )
+
+        val positions = mutableListOf<SatellitePosition>()
+
+        val totalSeconds = durationMinutes * 60
+
+        var elapsedSeconds = 0
+
+        while (elapsedSeconds <= totalSeconds) {
+
+            val date = startDate.shiftedBy(
+                elapsedSeconds.toDouble()
+            )
+
+            val position = calculatePosition(
+                propagator = propagator,
+                date = date
+            )
+
+            positions.add(position)
+
+            elapsedSeconds += stepSeconds
+        }
+
+        return positions
+    }
+
+    private fun calculatePosition(
+        propagator: TLEPropagator,
+        date: AbsoluteDate
+    ): SatellitePosition {
+
         val teme = FramesFactory.getTEME()
 
         val pv = propagator.getPVCoordinates(
