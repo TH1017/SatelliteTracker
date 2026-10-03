@@ -55,4 +55,6 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation("org.maplibre.gl:android-sdk:11.8.0")
+    implementation("org.orekit:orekit:13.1.8")
 }
